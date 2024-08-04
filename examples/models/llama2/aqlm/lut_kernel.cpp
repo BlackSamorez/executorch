@@ -1,0 +1,114 @@
+#include "lut_kernel.h"
+
+#include <numeric>
+#include <functional>
+
+#include <executorch/extension/kernel_util/make_boxed_from_unboxed_functor.h>
+#include <executorch/runtime/core/exec_aten/util/dim_order_util.h>
+#include <executorch/runtime/core/exec_aten/util/scalar_type_util.h>
+
+#include <executorch/kernels/optimized/blas/CPUBlas.h>
+
+constexpr int GROUP_SIZE = 1024;
+
+
+template<typename fp_dtype>
+void quadruple_for(
+    int num_inputs,
+    int num_input_groups, const fp_dtype* lut,
+    int out_features, const uint8_t* b_alt,
+    fp_dtype* output_vec
+)
+{
+    for (int input = 0; input < num_inputs; ++input) {
+        for (int i = 0; i < out_features; ++i) {
+            output_vec[input * out_features + i] = 0;
+        }
+    }
+
+    for (int input = 0; input < num_inputs; ++input) {
+        for (int j = 0; j < num_input_groups; ++j) {
+            for (int i = 0; i < out_features; ++i) {
+                for (int c = 0; c < 2; ++c) {
+                    output_vec[input * out_features + i] += lut[
+                        input * num_input_groups * 2 * 256 +
+                        j * 2 * 256 + 
+                        c * codebook_size +
+                        b_alt[
+                            j * 2 * out_features + 
+                            i * 2 + 
+                            c
+                        ]
+                    ];
+                }
+            }
+        }
+    }
+}
+
+namespace torch {
+  namespace executor {
+    namespace native {
+      Tensor& code2x8_lut_matmat_out(
+        RuntimeContext& ctx,
+        const Tensor& input,
+        const Tensor& codes,
+        const Tensor& codebooks,
+        const Tensor& scales,
+        const optional<Tensor>& bias,
+        Tensor& out
+      ) {
+        auto input_sizes = input.sizes();
+        auto out_features = codes.size(1) * codebooks.size(2);
+        auto input_vector_size = input.size(input.dim() - 1);
+        auto num_input_vectors = std::accumulate(input_sizes.begin(), input_sizes.end(), 1, std::multiplies<int64_t>()) / input_vector_size;
+
+        // Allocate LUT
+        auto lut_data = ctx.allocate_temp(
+            4 * num_input_vectors * input_vector_size / 8 * codebooks.size(0) * codebooks.size(1)
+        ).get();
+
+        // A @ B.T
+        ::executorch::cpublas::gemm(
+            ::executorch::cpublas::TransposeType::Transpose,
+            ::executorch::cpublas::TransposeType::NoTranspose,
+            (int64_t)codebooks.size(0) * codebooks.size(1),      // B rows
+            (int64_t)num_input_vectors * input_vector_size / 8,  // A rows
+            (int64_t)8,                                          // MatMul dim size
+            1.f,
+            (float*)codebooks.const_data_ptr(), (int64_t)8,
+            (float*)input.const_data_ptr(), (int64_t)8,
+            0.f,
+            (float*)lut_data, (int64_t)codebooks.size(0) * codebooks.size(1)
+        );
+
+        // Do lookup matmul
+        quadruple_for<float>(
+            num_input_vectors,
+            input_vector_size / 8,
+            (const float*)lut_data,
+            out_features,
+            (const uint8_t*)codes.const_data_ptr(),
+            (float*)out.mutable_data_ptr()
+        );
+        
+        for (int j = 0; j < out_features; ++j) {
+            for (int i=0; i < num_input_vectors; ++i) {
+                out.mutable_data_ptr<float>()[
+                    i * out_features + j
+                ] *= scales.const_data_ptr<float>()[j];
+                if (bias.has_value()) {
+                    out.mutable_data_ptr<float>()[
+                        i * out_features + j
+                    ] += bias.value().const_data_ptr<float>()[j];
+                }
+            }
+        }
+        
+        return out;
+      }
+    } // namespace native
+  } // namespace executor
+} // namespace torch
+
+EXECUTORCH_LIBRARY(aqlm, "code2x8_lut_matmat.out", torch::executor::native::code2x8_lut_matmat_out);

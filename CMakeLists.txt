@@ -467,6 +467,9 @@ if(EXECUTORCH_BUILD_KERNELS_CUSTOM)
   add_subdirectory(
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/models/llama2/custom_ops
   )
+  add_subdirectory(
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/models/llama2/aqlm
+  )
 endif()
 
 if(EXECUTORCH_BUILD_KERNELS_OPTIMIZED)
@@ -633,6 +636,7 @@ if(EXECUTORCH_BUILD_PYBIND)
   # TODO(larryliu): Fix macOS 2 dylibs having 2 sets of static variables issue
   if(EXECUTORCH_BUILD_KERNELS_CUSTOM_AOT AND NOT APPLE)
     list(APPEND _dep_libs custom_ops_aot_lib)
+    list(APPEND _dep_libs aqlm)
   endif()
   # TODO(laryliu): Fix linux duplicate registation problem. In GH CI worker
   # libcustom_ops.a doesn't dedup with the one indirectly linked from
@@ -640,6 +644,7 @@ if(EXECUTORCH_BUILD_PYBIND)
   if(EXECUTORCH_BUILD_KERNELS_CUSTOM AND APPLE)
     target_link_options_shared_lib(custom_ops)
     list(APPEND _dep_libs custom_ops)
+    list(APPEND _dep_libs aqlm)
   endif()
   # compile options for pybind
   set(_pybind_compile_options

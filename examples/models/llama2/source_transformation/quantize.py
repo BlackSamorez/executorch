@@ -131,6 +131,32 @@ def quantize(
         )
         model = gptq_quantizer.quantize(model, inputs)
         return model
+    elif qmode == "aqlm-2x8":
+        from executorch.examples.models.llama2.aqlm.lut_kernel import aqlm_lib # noqa
+        from executorch.examples.models.llama2.aqlm.utils import replace_with_aqlm_linear, transpose_codes
+        from transformers.utils.quantization_config import AqlmConfig
+        
+        model, _ = replace_with_aqlm_linear(
+            model=model,
+            quantization_config=AqlmConfig(
+                num_codebooks=2,
+                nbits_per_codebook=8,    
+            ),
+            linear_weights_not_to_quantize=[
+                "tok_embeddings.weight",
+                "output.weight",
+            ],
+        )
+        model.load_state_dict(
+            torch.load("/Users/blacksamorez/models/Llama-2-7b-AQLM-2Bit-2x8-hf/executorch.pth"),
+            strict=False,
+            # assign=True,
+        )
+        model, _ = transpose_codes(
+            model=model,
+        )
+        
+        return model
     else:
         raise Exception(f"Unrecognized quantize mode: {qmode}")
 
