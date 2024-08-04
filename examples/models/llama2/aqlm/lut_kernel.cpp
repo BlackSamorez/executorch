@@ -9,38 +9,29 @@
 
 #include <executorch/kernels/optimized/blas/CPUBlas.h>
 
-constexpr int GROUP_SIZE = 1024;
 
 
 template<typename fp_dtype>
 void quadruple_for(
     int num_inputs,
-    int num_input_groups, const fp_dtype* lut,
-    int out_features, const uint8_t* b_alt,
-    fp_dtype* output_vec
+    int num_input_groups, const fp_dtype* __restrict__ lut,
+    int out_features, const uint8_t* __restrict__ b_alt,
+    fp_dtype* __restrict__ output_vec
 )
 {
-    for (int input = 0; input < num_inputs; ++input) {
-        for (int i = 0; i < out_features; ++i) {
-            output_vec[input * out_features + i] = 0;
-        }
-    }
+    std::memset(output_vec, 0, num_inputs * out_features * sizeof(fp_dtype));
+
+    const int lut_stride = num_input_groups * 2 * 256;
+    const int b_alt_stride = 2 * out_features;
 
     for (int input = 0; input < num_inputs; ++input) {
         for (int j = 0; j < num_input_groups; ++j) {
+            const fp_dtype* lut_ptr = lut + input * lut_stride + j * 2 * 256;
+            const uint8_t* b_alt_ptr = b_alt + j * b_alt_stride;
+
             for (int i = 0; i < out_features; ++i) {
-                for (int c = 0; c < 2; ++c) {
-                    output_vec[input * out_features + i] += lut[
-                        input * num_input_groups * 2 * 256 +
-                        j * 2 * 256 + 
-                        c * codebook_size +
-                        b_alt[
-                            j * 2 * out_features + 
-                            i * 2 + 
-                            c
-                        ]
-                    ];
-                }
+                output_vec[input * out_features + i] += lut_ptr[b_alt_ptr[i * 2]];
+                output_vec[input * out_features + i] += lut_ptr[256 + b_alt_ptr[i * 2 + 1]];
             }
         }
     }
