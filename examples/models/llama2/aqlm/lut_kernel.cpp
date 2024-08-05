@@ -10,7 +10,6 @@
 #include <executorch/kernels/optimized/blas/CPUBlas.h>
 
 
-
 template<typename fp_dtype>
 void quadruple_for(
     int num_inputs,
@@ -32,6 +31,27 @@ void quadruple_for(
             for (int i = 0; i < out_features; ++i) {
                 output_vec[input * out_features + i] += lut_ptr[b_alt_ptr[i * 2]];
                 output_vec[input * out_features + i] += lut_ptr[256 + b_alt_ptr[i * 2 + 1]];
+            }
+        }
+    }
+}
+
+
+void row_wise_scaling_and_bias(
+    float* __restrict__ out,
+    const float* __restrict__ scales, const float* __restrict__ bias,
+    int num_input_vectors, int out_features
+) {
+    for (int j = 0; j < out_features; ++j) {
+        float scale_value = scales[j];
+        float bias_value;
+        if (bias != nullptr){
+            bias_value = bias[j];
+        }
+        for (int i=0; i < num_input_vectors; ++i) {
+            out[i * out_features + j] *= scale_value;
+            if (bias != nullptr) {
+                out[i * out_features + j] += bias_value;
             }
         }
     }
@@ -82,19 +102,19 @@ namespace torch {
             (const uint8_t*)codes.const_data_ptr(),
             (float*)out.mutable_data_ptr()
         );
-        
-        for (int j = 0; j < out_features; ++j) {
-            for (int i=0; i < num_input_vectors; ++i) {
-                out.mutable_data_ptr<float>()[
-                    i * out_features + j
-                ] *= scales.const_data_ptr<float>()[j];
-                if (bias.has_value()) {
-                    out.mutable_data_ptr<float>()[
-                        i * out_features + j
-                    ] += bias.value().const_data_ptr<float>()[j];
-                }
-            }
+
+        const float* bias_ptr = nullptr;
+        if (bias.has_value()) {
+            bias_ptr = bias.value().const_data_ptr<float>();
         }
+
+        row_wise_scaling_and_bias(
+            out.mutable_data_ptr<float>(),
+            scales.const_data_ptr<float>(),
+            bias_ptr,
+            num_input_vectors,
+            out_features
+        );
         
         return out;
       }
