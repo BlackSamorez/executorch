@@ -47,6 +47,8 @@ def quantize(
     blocksize: int = 128,
     tokenizer_path: Optional[Path] = None,
     verbose: bool = False,
+    # following arguments are only used for AQLM
+    converted_aqlm_checkpoint_path: Optional[Path] = None,
 ) -> torch.nn.Module:
     """
     Quantizes a model by converting all weights to int8.
@@ -148,7 +150,7 @@ def quantize(
             ],
         )
         model.load_state_dict(
-            torch.load("/Users/blacksamorez/models/Llama-2-7b-AQLM-PV-2Bit-2x8-hf/executorch.pth"),
+            torch.load(converted_aqlm_checkpoint_path),
             strict=False,
             # assign=True,
         )
@@ -601,6 +603,7 @@ def get_quant_weight_transform(args, dtype_override, verbose):
         "calibration_tasks",
         "calibration_limit",
         "calibration_seq_length",
+        "converted_aqlm_checkpoint_path",
     ]
     arg_dict = vars(args)
     quant_args = {

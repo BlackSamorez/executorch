@@ -212,6 +212,12 @@ def build_args_parser() -> argparse.ArgumentParser:
         default=None,
         help="group_size for weight quantization",
     )
+    parser.add_argument(
+        "--converted_aqlm_checkpoint_path",
+        type=str,
+        default=None,
+        help="Path to .pt file produced with aqlm/convert_from_hf.ipynb",
+    )
 
     parser.add_argument(
         "-d",
