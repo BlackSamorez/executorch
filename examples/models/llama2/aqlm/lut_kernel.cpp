@@ -36,7 +36,30 @@ void quadruple_for(
     }
 }
 
-
+#if defined(__aarch64__) && defined(__ARM_NEON)
+#include <arm_neon.h>
+void row_wise_scaling_and_bias(
+    float* __restrict__ out,
+    const float* __restrict__ scales, const float* __restrict__ bias,
+    int num_input_vectors, int out_features
+) {
+    for (int j = 0; j < out_features; j += 4) {
+        float32x4_t scales_vec = vld1q_f32(scales + j);
+        float32x4_t bias_vec;
+        if (bias != nullptr){
+            bias_vec = vld1q_f32(bias + j);
+        }
+        for (int i=0; i < num_input_vectors; ++i) {
+            float32x4_t values_vec = vld1q_f32(out + i * out_features + j);
+            values_vec = vmulq_f32(values_vec, scales_vec);
+            if (bias != nullptr) {
+                values_vec = vaddq_f32(values_vec, bias_vec);
+            }
+            vst1q_f32(out + i * out_features + j, values_vec);
+        }
+    }
+}
+#else
 void row_wise_scaling_and_bias(
     float* __restrict__ out,
     const float* __restrict__ scales, const float* __restrict__ bias,
@@ -56,6 +79,7 @@ void row_wise_scaling_and_bias(
         }
     }
 }
+#endif
 
 namespace torch {
   namespace executor {
