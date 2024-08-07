@@ -95,7 +95,7 @@ Result<std::unordered_set<std::string>> Module::method_names() {
   return result;
 }
 
-static uint8_t temp_allocator_pool[4 * 1024U * 1024U]; // 4 MB
+static uint8_t temp_allocator_pool[16 * 1024U * 1024U]; // 16 MB
 static MemoryAllocator temp_allocator(sizeof(temp_allocator_pool), temp_allocator_pool);
 
 Error Module::load_method(const std::string& method_name) {
