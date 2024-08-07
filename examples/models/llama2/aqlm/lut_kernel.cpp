@@ -4,9 +4,6 @@
 #include <functional>
 
 #include <executorch/extension/kernel_util/make_boxed_from_unboxed_functor.h>
-#include <executorch/runtime/core/exec_aten/util/dim_order_util.h>
-#include <executorch/runtime/core/exec_aten/util/scalar_type_util.h>
-
 #include <executorch/kernels/optimized/blas/CPUBlas.h>
 
 
