@@ -148,7 +148,7 @@ def quantize(
             ],
         )
         model.load_state_dict(
-            torch.load("/Users/blacksamorez/models/Llama-2-7b-AQLM-2Bit-2x8-hf/executorch.pth"),
+            torch.load("/Users/blacksamorez/models/Llama-2-7b-AQLM-PV-2Bit-2x8-hf/executorch.pth"),
             strict=False,
             # assign=True,
         )
