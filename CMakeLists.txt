@@ -636,7 +636,7 @@ if(EXECUTORCH_BUILD_PYBIND)
   # TODO(larryliu): Fix macOS 2 dylibs having 2 sets of static variables issue
   if(EXECUTORCH_BUILD_KERNELS_CUSTOM_AOT AND NOT APPLE)
     list(APPEND _dep_libs custom_ops_aot_lib)
-    list(APPEND _dep_libs aqlm)
+    list(APPEND _dep_libs aqlm_aot_lib)
   endif()
   # TODO(laryliu): Fix linux duplicate registation problem. In GH CI worker
   # libcustom_ops.a doesn't dedup with the one indirectly linked from
@@ -644,6 +644,7 @@ if(EXECUTORCH_BUILD_PYBIND)
   if(EXECUTORCH_BUILD_KERNELS_CUSTOM AND APPLE)
     target_link_options_shared_lib(custom_ops)
     list(APPEND _dep_libs custom_ops)
+    target_link_options_shared_lib(aqlm)
     list(APPEND _dep_libs aqlm)
   endif()
   # compile options for pybind
@@ -704,7 +705,7 @@ if(EXECUTORCH_BUILD_PYBIND)
       PROPERTIES # Assume that this library will be installed in
                  # `site-packages/executorch/extension/pybindings`, and that
                  # the custom_ops_aot_lib should be found with relative path.
-                 BUILD_RPATH "$ORIGIN:$ORIGIN/../../examples/models/llama2/custom_ops"
+                 BUILD_RPATH "$ORIGIN:$ORIGIN/../../examples/models/llama2/custom_ops:$ORIGIN/../../examples/models/llama2/aqlm"
     )
   endif()
 
