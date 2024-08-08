@@ -36,12 +36,12 @@ class Aqlm2x8Linear(nn.Module):
         )  # [num_codebooks, codebook_size, out_group_size, in_group_size]
         self.codes = nn.Parameter(
             torch.empty(
-                (num_out_groups, num_in_groups, num_codebooks),
+                (num_in_groups, num_out_groups, num_codebooks),
                 device=device,
                 dtype=torch.int8,
             ),
             requires_grad=False,
-        )  #  [num_out_groups, num_in_groups, num_codebooks]
+        )  #  [num_in_groups, num_out_groups, num_codebooks]
 
         # SCALES
         self.scales = nn.Parameter(
@@ -53,9 +53,6 @@ class Aqlm2x8Linear(nn.Module):
             self.bias = nn.Parameter(torch.empty(out_features, **factory_kwargs), requires_grad=False)
         else:
             self.register_parameter("bias", None)
-        
-    def transpose_codes(self):
-        self.codes.data = torch.permute(self.codes.data, (1, 0, 2)).contiguous()
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return torch.ops.aqlm.code2x8_lut_matmat(

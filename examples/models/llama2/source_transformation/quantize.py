@@ -135,7 +135,7 @@ def quantize(
         return model
     elif qmode == "aqlm-2x8":
         from executorch.examples.models.llama2.aqlm.lut_kernel import aqlm_lib # noqa
-        from executorch.examples.models.llama2.aqlm.utils import replace_with_aqlm_linear, transpose_codes
+        from executorch.examples.models.llama2.aqlm.utils import replace_with_aqlm_linear
         from transformers.utils.quantization_config import AqlmConfig
         
         model, _ = replace_with_aqlm_linear(
@@ -152,10 +152,7 @@ def quantize(
         model.load_state_dict(
             torch.load(converted_aqlm_checkpoint_path),
             strict=False,
-            # assign=True,
-        )
-        model, _ = transpose_codes(
-            model=model,
+            assign=True,
         )
         
         return model

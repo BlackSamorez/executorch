@@ -72,27 +72,3 @@ def replace_with_aqlm_linear(
         # Remove the last key for recursion
         current_key_name.pop(-1)
     return model, has_been_replaced
-
-
-def transpose_codes(
-    model,
-    current_key_name=None,
-    has_been_transposed=False,
-):
-    for name, module in model.named_children():
-        if current_key_name is None:
-            current_key_name = []
-        current_key_name.append(name)
-
-        if isinstance(module, Aqlm2x8Linear):
-            model._modules[name].transpose_codes()
-            has_been_transposed = True
-        if len(list(module.children())) > 0:
-            _, has_been_transposed = transpose_codes(
-                module,
-                current_key_name=current_key_name,
-                has_been_transposed=has_been_transposed,
-            )
-        # Remove the last key for recursion
-        current_key_name.pop(-1)
-    return model, has_been_transposed

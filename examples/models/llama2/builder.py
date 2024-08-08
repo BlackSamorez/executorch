@@ -101,6 +101,7 @@ def load_llama_model(
         use_sdpa_with_kv_cache=use_sdpa_with_kv_cache,
         fairseq2=weight_type == WeightType.FAIRSEQ2,
         max_seq_len=max_seq_len,
+        skip_loading="AQLM" in params_path,
     )
     state_dict = model.state_dict()
     dtype = state_dict[next(iter(state_dict))].dtype
