@@ -155,6 +155,16 @@ def quantize(
             assign=True,
         )
         
+        # Quantize model head with 8da4w
+        if group_size is None:
+            raise Exception("For 8da4w quantization, group size must be specified.")
+        from torchao.quantization.quant_api import Int8DynActInt4WeightQuantizer
+
+        model = Int8DynActInt4WeightQuantizer(
+            precision=torch_dtype, groupsize=group_size
+        ).quantize(model)
+        if verbose:
+            print("quantized model:", model)
         return model
     else:
         raise Exception(f"Unrecognized quantize mode: {qmode}")
