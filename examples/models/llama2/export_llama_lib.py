@@ -377,6 +377,7 @@ def _prepare_for_llama_export(modelname: str, args) -> LlamaEdgeManager:
             weight_type=weight_type,
             verbose=args.verbose,
             max_seq_len=args.max_seq_length,
+            skip_loading=(args.quantization_mode == "aqlm-2x8"),
         )
         .set_output_dir(output_dir_path)
         .set_metadata(args.metadata)

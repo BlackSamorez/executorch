@@ -202,6 +202,9 @@ public class MainActivity extends Activity implements Runnable, LlamaCallback {
     mSendButton.setOnClickListener(
         view -> {
           String prompt = mEditTextMessage.getText().toString();
+
+          String chat_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n" + prompt + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
+
           mMessageAdapter.add(new Message(prompt, true));
           mMessageAdapter.notifyDataSetChanged();
           mEditTextMessage.setText("");
@@ -219,7 +222,7 @@ public class MainActivity extends Activity implements Runnable, LlamaCallback {
                         }
                       });
 
-                  mModule.generate(prompt, MainActivity.this);
+                  mModule.generate(chat_prompt, MainActivity.this);
 
                   runOnUiThread(
                       new Runnable() {

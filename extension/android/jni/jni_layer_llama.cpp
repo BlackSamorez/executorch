@@ -130,7 +130,7 @@ class ExecuTorchLlamaJni
       facebook::jni::alias_ref<ExecuTorchLlamaCallbackJni> callback) {
     runner_->generate(
         prompt->toStdString(),
-        128,
+        1024,
         [callback](std::string result) { callback->onResult(result); },
         [callback](const Runner::Stats& result) { callback->onStats(result); });
     return 0;

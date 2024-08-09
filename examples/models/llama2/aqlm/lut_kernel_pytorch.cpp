@@ -5,6 +5,9 @@
 
 #include <torch/library.h>
 
+static uint8_t temp_allocator_pool[16 * 1024U * 1024U]; // 16 Mb
+static torch::executor::MemoryAllocator temp_allocator(sizeof(temp_allocator_pool), temp_allocator_pool);
+
 namespace torch {
     namespace executor {
         namespace native {
@@ -16,10 +19,7 @@ namespace torch {
                 const optional<Tensor> bias,
                 Tensor& output
             ) {
-                void* memory_pool = malloc(10000000 * sizeof(uint8_t));
-                MemoryAllocator allocator(10000000, (uint8_t*)memory_pool);
-
-                exec_aten::RuntimeContext context{nullptr, &allocator};
+                exec_aten::RuntimeContext context{nullptr, &temp_allocator};
                 return torch::executor::native::code2x8_lut_matmat_out(
                     context,
                     input,
