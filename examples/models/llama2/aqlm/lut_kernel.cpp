@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <functional>
+#include <omp.h>
 
 #include <executorch/extension/kernel_util/make_boxed_from_unboxed_functor.h>
 #include <executorch/kernels/optimized/blas/CPUBlas.h>
@@ -21,6 +22,7 @@ void quadruple_for(
     const int b_alt_stride = 2 * out_features;
 
     for (int input = 0; input < num_inputs; ++input) {
+        #pragma omp parallel for num_threads(4)
         for (int j = 0; j < num_input_groups; ++j) {
             const fp_dtype* lut_ptr = lut + input * lut_stride + j * 2 * 256;
             const uint8_t* b_alt_ptr = b_alt + j * b_alt_stride;

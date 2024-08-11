@@ -129,6 +129,8 @@ if(EXECUTORCH_BUILD_LLAMA_JNI)
     eigen_blas
     quantized_kernels
     quantized_ops_lib
+    -fopenmp
+    -static-openmp
   )
   target_compile_options(executorch_llama_jni PUBLIC ${_common_compile_options})
   if(EXECUTORCH_USE_TIKTOKEN)
