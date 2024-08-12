@@ -119,7 +119,7 @@ def build_args_parser() -> argparse.ArgumentParser:
         "--quantization_mode",
         type=str,
         default=None,
-        choices=["int8", "8da4w", "8da4w-gptq"],
+        choices=["int8", "8da4w", "8da4w-gptq", "aqlm-2x8"],
         help="type of quantization",
     )
 
@@ -211,6 +211,12 @@ def build_args_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="group_size for weight quantization",
+    )
+    parser.add_argument(
+        "--converted_aqlm_checkpoint_path",
+        type=str,
+        default=None,
+        help="Path to .pt file produced with aqlm/convert_from_hf.ipynb",
     )
 
     parser.add_argument(
@@ -371,6 +377,7 @@ def _prepare_for_llama_export(modelname: str, args) -> LlamaEdgeManager:
             weight_type=weight_type,
             verbose=args.verbose,
             max_seq_len=args.max_seq_length,
+            skip_loading=(args.quantization_mode == "aqlm-2x8"),
         )
         .set_output_dir(output_dir_path)
         .set_metadata(args.metadata)

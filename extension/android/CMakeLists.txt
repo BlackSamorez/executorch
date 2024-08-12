@@ -86,6 +86,13 @@ if(EXECUTORCH_BUILD_LLAMA_JNI)
   set_property(TARGET custom_ops PROPERTY IMPORTED_LOCATION ${CUSTOM_OPS_PATH})
   target_link_options_shared_lib(custom_ops)
 
+  set(AQLM_PATH
+      ${CMAKE_CURRENT_BINARY_DIR}/../../examples/models/llama2/aqlm/libaqlm.a
+  )
+  add_library(aqlm STATIC IMPORTED)
+  set_property(TARGET aqlm PROPERTY IMPORTED_LOCATION ${AQLM_PATH})
+  target_link_options_shared_lib(aqlm)
+
   target_link_options_shared_lib(quantized_ops_lib)
 
   if(TARGET pthreadpool)
@@ -117,10 +124,13 @@ if(EXECUTORCH_BUILD_LLAMA_JNI)
     ${link_libraries}
     llama_runner
     custom_ops
+    aqlm
     cpublas
     eigen_blas
     quantized_kernels
     quantized_ops_lib
+    -fopenmp
+    -static-openmp
   )
   target_compile_options(executorch_llama_jni PUBLIC ${_common_compile_options})
   if(EXECUTORCH_USE_TIKTOKEN)

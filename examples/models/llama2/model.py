@@ -173,6 +173,9 @@ the checkpoint format to avoid generating faulty models.
         # They possess all other metadata a tensor carries such as size, stride, requires_grad.
         with torch.device("meta"):
             self.model_ = Transformer(model_args)
+            
+        if kwargs.get("skip_loading", None):
+            return
 
         if "int8" in str(checkpoint_path):
             print("Using int8 weight-only quantization!")

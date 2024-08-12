@@ -95,6 +95,9 @@ Result<std::unordered_set<std::string>> Module::method_names() {
   return result;
 }
 
+static uint8_t temp_allocator_pool[16 * 1024U * 1024U]; // 16 MB
+static MemoryAllocator temp_allocator(sizeof(temp_allocator_pool), temp_allocator_pool);
+
 Error Module::load_method(const std::string& method_name) {
   if (!is_method_loaded(method_name)) {
     ET_CHECK_OK_OR_RETURN_ERROR(load());
@@ -118,7 +121,7 @@ Error Module::load_method(const std::string& method_name) {
         method_holder.planned_spans.data(),
         method_holder.planned_spans.size()));
     method_holder.memory_manager = std::make_unique<MemoryManager>(
-        memory_allocator_.get(), method_holder.planned_memory.get());
+        memory_allocator_.get(), method_holder.planned_memory.get(), &temp_allocator);
     method_holder.method = ET_UNWRAP_UNIQUE(program_->load_method(
         method_name.c_str(),
         method_holder.memory_manager.get(),

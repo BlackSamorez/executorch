@@ -489,7 +489,7 @@ class CustomBuild(build):
                 "-DEXECUTORCH_BUILD_KERNELS_CUSTOM=ON",  # add llama sdpa ops to pybindings.
                 "-DEXECUTORCH_BUILD_KERNELS_CUSTOM_AOT=ON",
             ]
-            build_args += ["--target", "custom_ops_aot_lib"]
+            build_args += ["--target", "custom_ops_aot_lib", "--target", "aqlm_aot_lib"]
         # Allow adding extra cmake args through the environment. Used by some
         # tests and demos to expand the set of targets included in the pip
         # package.
@@ -567,6 +567,13 @@ def get_ext_modules() -> list[Extension]:
             BuiltFile(
                 "examples/models/llama2/custom_ops/libcustom_ops_aot_lib.*",
                 "executorch/examples/models/llama2/custom_ops",
+            )
+        )
+        ext_modules.append(
+            # Install the prebuilt library for custom ops used in llama.
+            BuiltFile(
+                "examples/models/llama2/aqlm/libaqlm_aot_lib.*",
+                "executorch/examples/models/llama2/aqlm",
             )
         )
 

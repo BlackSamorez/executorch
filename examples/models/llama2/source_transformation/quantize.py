@@ -47,6 +47,8 @@ def quantize(
     blocksize: int = 128,
     tokenizer_path: Optional[Path] = None,
     verbose: bool = False,
+    # following arguments are only used for AQLM
+    converted_aqlm_checkpoint_path: Optional[Path] = None,
 ) -> torch.nn.Module:
     """
     Quantizes a model by converting all weights to int8.
@@ -130,6 +132,39 @@ def quantize(
             group_size,
         )
         model = gptq_quantizer.quantize(model, inputs)
+        return model
+    elif qmode == "aqlm-2x8":
+        from executorch.examples.models.llama2.aqlm.lut_kernel import aqlm_lib # noqa
+        from executorch.examples.models.llama2.aqlm.utils import replace_with_aqlm_linear
+        from transformers.utils.quantization_config import AqlmConfig
+        
+        model, _ = replace_with_aqlm_linear(
+            model=model,
+            quantization_config=AqlmConfig(
+                num_codebooks=2,
+                nbits_per_codebook=8,    
+            ),
+            linear_weights_not_to_quantize=[
+                "tok_embeddings.weight",
+                "output.weight",
+            ],
+        )
+        model.load_state_dict(
+            torch.load(converted_aqlm_checkpoint_path),
+            strict=False,
+            assign=True,
+        )
+        
+        # Quantize model head with 8da4w
+        if group_size is None:
+            raise Exception("For 8da4w quantization, group size must be specified.")
+        from torchao.quantization.quant_api import Int8DynActInt4WeightQuantizer
+
+        model = Int8DynActInt4WeightQuantizer(
+            precision=torch_dtype, groupsize=group_size
+        ).quantize(model)
+        if verbose:
+            print("quantized model:", model)
         return model
     else:
         raise Exception(f"Unrecognized quantize mode: {qmode}")
@@ -575,6 +610,7 @@ def get_quant_weight_transform(args, dtype_override, verbose):
         "calibration_tasks",
         "calibration_limit",
         "calibration_seq_length",
+        "converted_aqlm_checkpoint_path",
     ]
     arg_dict = vars(args)
     quant_args = {

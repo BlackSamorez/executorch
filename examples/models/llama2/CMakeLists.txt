@@ -87,6 +87,7 @@ endif()
 # custom ops library
 if(EXECUTORCH_BUILD_KERNELS_CUSTOM)
   add_subdirectory(custom_ops)
+  add_subdirectory(aqlm)
 endif()
 
 # llama_runner library
@@ -129,6 +130,9 @@ list(APPEND link_libraries quantized_kernels quantized_ops_lib)
 if(EXECUTORCH_BUILD_KERNELS_CUSTOM)
   target_link_options_shared_lib(custom_ops)
   list(APPEND link_libraries custom_ops)
+
+  target_link_options_shared_lib(aqlm)
+  list(APPEND link_libraries aqlm)
 endif()
 
 set(XNNPACK_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../../backends/xnnpack)
