@@ -13,7 +13,7 @@
 import contextlib
 import logging
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from executorch.backends.transforms.duplicate_dynamic_quant_chain import (
@@ -38,6 +38,8 @@ from torch.export import export_for_training, ExportedProgram
 from torch.nn.attention import SDPBackend
 from torchao.quantization.pt2e.quantize_pt2e import convert_pt2e, prepare_pt2e
 from torchao.quantization.pt2e.quantizer import ComposableQuantizer, Quantizer
+from torch.ao.quantization.quantizer import Quantizer as QuantizerAO
+from torch.ao.quantization.quantizer.composable_quantizer import ComposableQuantizer as ComposableQuantizerAO
 from torchao.utils import unwrap_tensor_subclass
 
 FORMAT = "[%(levelname)s %(asctime)s %(filename)s:%(lineno)s] %(message)s"
@@ -346,7 +348,7 @@ class LLMEdgeManager:
             print(f"{task}: {res}")
         logging.info("Calibration finish...")
 
-    def pt2e_quantize(self, quantizers: Optional[List[Quantizer]]) -> "LLMEdgeManager":
+    def pt2e_quantize(self, quantizers: Optional[List[Union[Quantizer, QuantizerAO]]]) -> "LLMEdgeManager":
         """
         Quantize the model via pt2e flow and retrieve LLMEdgeManager including the quantized model.
         Args:
@@ -364,7 +366,10 @@ class LLMEdgeManager:
                 if self.verbose:
                     logging.info(f"Applied quantizers: {quantizers}")
 
-                composed_quantizer = ComposableQuantizer(quantizers)
+                if len(quantizers) > 0 and isinstance(quantizers[0], QuantizerAO):
+                    composed_quantizer = ComposableQuantizerAO(quantizers)
+                else:
+                    composed_quantizer = ComposableQuantizer(quantizers)
 
                 assert (
                     self.pre_autograd_graph_module is not None
